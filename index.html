@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Army Battle Simulation</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+</head>
+
+<body>
+    <div id="setup-screen" class="screen active">
+        <h1>ARMY BATTLE SETUP</h1>
+        <div class="setup-form">
+            <div class="army-input">
+                <label for="red-size">RED ARMY SIZE:</label>
+                <input type="number" id="red-size" min="1" max="20" value="5">
+            </div>
+            <div class="army-input">
+                <label for="blue-size">BLUE ARMY SIZE:</label>
+                <input type="number" id="blue-size" min="1" max="20" value="5">
+            </div>
+            <button id="start-btn" class="btn-primary">START BATTLE</button>
+        </div>
+    </div>
+
+    <div id="battle-screen" class="screen">
+        <div class="battle-ui">
+            <div class="stats-bar">
+                <div class="team-stats red-team">
+                    <span class="team-name">RED ARMY</span>
+                    <span class="unit-count" id="red-count">0</span>
+                </div>
+                <div class="round-info">
+                    <span>ROUND:</span>
+                    <span id="round-counter">1</span>
+                    <span id="turn-indicator">RED TURN</span>
+                </div>
+                <div class="team-stats blue-team">
+                    <span class="team-name">BLUE ARMY</span>
+                    <span class="unit-count" id="blue-count">0</span>
+                </div>
+            </div>
+
+            <canvas id="battlefield" width="1200" height="700"></canvas>
+
+            <div class="controls">
+                <button id="next-turn-btn" class="btn-primary">NEXT TURN</button>
+                <button id="auto-btn" class="btn-primary" style="margin-left: 10px; background: #555;">AUTO:
+                    OFF</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="victory-screen" class="screen">
+        <div class="victory-overlay">
+            <h2 id="winner-text">VICTORY: RED</h2>
+            <button id="restart-btn" class="btn-primary">RESTART BATTLE</button>
+        </div>
+    </div>
+
+    <script src="js/constants.js"></script>
+    <script src="js/SoundManager.js"></script>
+    <script src="js/Unit.js"></script>
+    <script src="js/Projectile.js"></script>
+    <script src="js/Battlefield.js"></script>
+    <script src="js/Game.js"></script>
+    <script src="js/main.js"></script>
+</body>
+
+</html>

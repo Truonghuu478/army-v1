@@ -1,0 +1,221 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    color: white;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.screen {
+    display: none;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.screen.active {
+    display: block;
+}
+
+/* Setup Screen */
+#setup-screen {
+    text-align: center;
+    padding: 40px;
+}
+
+#setup-screen h1 {
+    font-size: 2.5rem;
+    margin-bottom: 40px;
+    color: #FF6B6B;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+.setup-form {
+    background: rgba(30, 30, 50, 0.9);
+    padding: 40px;
+    border-radius: 15px;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.army-input {
+    margin: 20px 0;
+}
+
+.army-input label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 1.1rem;
+    color: #ccc;
+}
+
+.army-input input {
+    width: 100%;
+    padding: 12px;
+    font-size: 1.2rem;
+    border: 2px solid #444;
+    border-radius: 8px;
+    background: #222;
+    color: white;
+    text-align: center;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #FF6B6B, #EE5A24);
+    color: white;
+    border: none;
+    padding: 15px 50px;
+    font-size: 1.2rem;
+    border-radius: 10px;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: all 0.3s;
+    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
+}
+
+/* Battle Screen */
+.battle-ui {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.stats-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    background: rgba(20, 20, 40, 0.95);
+    padding: 15px 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+}
+
+.team-stats {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.team-name {
+    font-size: 1.1rem;
+    font-weight: bold;
+}
+
+.red-team .team-name { color: #FF4444; }
+.blue-team .team-name { color: #4488FF; }
+
+.unit-count {
+    font-size: 2rem;
+    font-weight: bold;
+    padding: 8px 20px;
+    background: rgba(0,0,0,0.5);
+    border-radius: 20px;
+    min-width: 60px;
+    text-align: center;
+}
+
+.round-info {
+    text-align: center;
+}
+
+.round-info span:first-child {
+    display: block;
+    font-size: 0.9rem;
+    color: #aaa;
+    margin-bottom: 5px;
+}
+
+#round-counter {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #FFD700;
+    margin-bottom: 5px;
+}
+
+#turn-indicator {
+    font-size: 1.2rem;
+    font-weight: bold;
+    padding: 5px 15px;
+    border-radius: 15px;
+    background: rgba(255, 107, 107, 0.3);
+}
+
+#turn-indicator.blue {
+    background: rgba(68, 136, 255, 0.3);
+}
+
+#battlefield {
+    background: linear-gradient(to bottom, #2c3e50, #1a1a2e);
+    border: 3px solid #333;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+}
+
+.controls {
+    width: 100%;
+    text-align: center;
+    padding: 10px;
+}
+
+/* Victory Screen */
+#victory-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.9);
+    display: none;
+    justify-content: center;
+    align-items: center;
+}
+
+#victory-screen.active {
+    display: flex;
+}
+
+.victory-overlay {
+    text-align: center;
+    background: rgba(30, 30, 50, 0.95);
+    padding: 60px;
+    border-radius: 20px;
+    border: 3px solid #FFD700;
+}
+
+.victory-overlay h2 {
+    font-size: 3.5rem;
+    margin-bottom: 40px;
+    background: linear-gradient(135deg, #FF6B6B, #4488FF);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 4px 15px rgba(255, 255, 255, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    #battlefield {
+        width: 95%;
+        height: auto;
+    }
+    
+    .stats-bar {
+        flex-direction: column;
+        gap: 15px;
+    }
+}
