@@ -6,7 +6,10 @@ class Projectile {
         this.y = startY;
         this.targetX = targetX;
         this.targetY = targetY;
-        this.type = type;
+
+        // Handle undefined type (e.g. basic turret)
+        this.type = type || 'turret';
+
         this.progress = 0;
         this.finished = false;
 
@@ -24,6 +27,18 @@ class Projectile {
             this.progress = 1;
             this.finished = true;
         }
+
+        // Instant hit if start and target are virtually same (close range bug fix)
+        // Or just ensure it finishes if dist is small?
+        // Actually, if we just rely on progress, it should reach target.
+        // But let's add a check if dist is very small? 
+        // No, let's trust progress. 
+        // But wait, if logic is correct, progress is linear 0 -> 1.
+        // It should reach targetX/Y 100%.
+
+        // However, if targetX/Y is VERY close (e.g. 1px), it might jump.
+        // Let's just safeguard the color in draw() first.
+
 
         if (this.type === UNIT_TYPES.ARTILLERY) {
             // Parabola
@@ -53,7 +68,21 @@ class Projectile {
             const angle = Math.atan2(dy, dx);
             const len = 40; // Tracer length
 
-            ctx.strokeStyle = '#FFFF00'; // Yellow tracer
+            // Safety for undefined UNIT_STATS[this.type]
+            let color = '#FFFF00';
+            if (UNIT_STATS[this.type] && UNIT_STATS[this.type].color) {
+                // Unit stats color is object {RED:..., BLUE:...} usually? 
+                // Need team? Projectile doesn't store team. 
+                // Default to yellow if complex.
+                // Actually Unit.js passes `type`. 
+            }
+            // Just stick to yellow for non-artillery projectiles for now, or use turrets special color?
+            // Let's try to detect if it's a turret.
+            if (this.type === 'turret') {
+                color = '#00FF00'; // Green laser?
+            }
+
+            ctx.strokeStyle = color; // Yellow tracer
             ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.moveTo(this.x, this.y);

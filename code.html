@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Block Warfare Simulator - Complete Prototype</title>
+    
+    <!-- External Dependencies (React, ReactDOM, Router, Babel, Tailwind) -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/history@5/umd/history.development.js"></script>
+    <script src="https://unpkg.com/react-router@6.3.0/umd/react-router.development.js"></script>
+    <script src="https://unpkg.com/react-router-dom@6.3.0/umd/react-router-dom.development.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Noto+Sans:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#4b85e2",
+                        "primary-dark": "#3a6bc0",
+                        "accent-red": "#e24b4b",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#121417",
+                        "surface-dark": "#1a1d23",
+                        "border-dark": "#2a2f37",
+                        "text-secondary": "#9fa8b7",
+                        "enemy": "#ef4444",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"],
+                        "body": ["Noto Sans", "sans-serif"],
+                    },
+                    borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+                },
+            },
+        }
+    </script>
+
+    <style>
+        /* Shared Styles */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #121417; }
+        ::-webkit-scrollbar-thumb { background: #2a2f37; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #4b85e2; }
+        .sim-grid {
+            background-size: 40px 40px;
+            background-image: linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-white font-display h-screen flex flex-col overflow-hidden">
+    <div id="root" class="h-full w-full"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { createRoot } = ReactDOM;
+        const { MemoryRouter, Routes, Route, Link, useNavigate, useLocation } = ReactRouterDOM;
+
+        // --- Helper Components ---
+
+        const NavButton = ({ to, label, icon }) => {
+            const location = useLocation();
+            const isActive = location.pathname === to;
+            return (
+                <Link to={to} className={`flex items-center gap-2 px-3 py-2 rounded text-sm font-medium transition-colors ${isActive ? 'bg-primary text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
+                    {icon && <span className="material-symbols-outlined text-[18px]">{icon}</span>}
+                    <span className="truncate">{label}</span>
+                </Link>
+            );
+        };
+
+        const MainLayout = ({ children }) => {
+            const navigate = useNavigate();
+            const [isMenuOpen, setMenuOpen] = useState(false);
+
+            return (
+                <div class="flex h-screen w-screen overflow-hidden bg-[#121417] text-white">
+                    {/* Navigation Sidebar */}
+                    <div className={`${isMenuOpen ? 'w-64' : 'w-16'} flex-shrink-0 bg-[#0d0f12] border-r border-[#2a2f37] flex flex-col transition-all duration-300 z-50`}>
+                        <div className="h-16 flex items-center justify-center border-b border-[#2a2f37]">
+                            <button onClick={() => setMenuOpen(!isMenuOpen)} className="p-2 text-gray-400 hover:text-white">
+                                <span className="material-symbols-outlined">menu</span>
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto py-4 flex flex-col gap-1 px-2">
+                             {/* Group 1: Setup & Main */}
+                            <NavButton to="/" label="Setup Phase" icon="build" />
+                            <NavButton to="/mid-simulation" label="Simulation Active" icon="play_circle" />
+                            <NavButton to="/battle-interface" label="Battle Interface" icon="sports_esports" />
+                            <NavButton to="/combat-logic" label="Combat Logic" icon="terminal" />
+                            
+                            <div className="h-px bg-[#2a2f37] my-2 mx-2"></div>
+                            
+                            {/* Group 2: Unit Showcases */}
+                            <NavButton to="/unit-tank" label="Tank Model" icon="token" />
+                            <NavButton to="/unit-artillery" label="Artillery Model" icon="rocket_launch" />
+                            <NavButton to="/unit-fighter" label="Fighter Jet" icon="flight" />
+                            <NavButton to="/unit-infantry" label="Infantry (Red)" icon="groups" />
+                             <NavButton to="/unit-showcase-all" label="Unit Gallery" icon="deployed_code" />
+
+                            <div className="h-px bg-[#2a2f37] my-2 mx-2"></div>
+                            
+                             {/* Group 3: Technical & UI */}
+                            <NavButton to="/tech-grid" label="Tech Grid" icon="grid_4x4" />
+                            <NavButton to="/design-system" label="Design System" icon="palette" />
+                            <NavButton to="/intel-dashboard" label="Intel Dashboard" icon="radar" />
+                             <NavButton to="/tech-view-jet" label="Tech View (Jet)" icon="architecture" />
+
+                            <div className="h-px bg-[#2a2f37] my-2 mx-2"></div>
+
+                            {/* Group 4: Results & Misc */}
+                            <NavButton to="/battle-results" label="Battle Results" icon="emoji_events" />
+                            <NavButton to="/victory-modal" label="Victory Modal" icon="military_tech" />
+                             <NavButton to="/setup-light" label="Setup (Light)" icon="light_mode" />
+                            <NavButton to="/active-sim-3d" label="Active Sim 3D" icon="view_in_ar" />
+
+                        </div>
+                    </div>
+
+                    {/* Main Content Area */}
+                    <div className="flex-1 relative overflow-hidden flex flex-col">
+                        {children}
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Screen Components ---
+
+        // Screen 1: Setup Phase
+        const SetupPhase = () => (
+            <div className="flex flex-col h-full bg-[#121417]">
+                <header className="flex shrink-0 items-center justify-between border-b border-border-dark bg-background-dark px-6 py-3 z-20">
+                    <div className="flex items-center gap-4 text-white">
+                        <div className="size-8 flex items-center justify-center bg-primary rounded text-white"><span className="material-symbols-outlined">grid_view</span></div>
+                        <div><h2 className="text-white text-lg font-bold">BLOCK WARFARE</h2><p className="text-xs text-text-secondary font-mono tracking-widest uppercase">Simulator v2.4.0</p></div>
+                    </div>
+                     <div className="flex items-center gap-3"><span className="text-xs text-green-500 font-mono">SERVER ONLINE</span><div className="size-8 rounded bg-gray-700"></div></div>
+                </header>
+                <div className="flex flex-1 overflow-hidden">
+                    <aside className="w-80 flex flex-col bg-surface-dark border-r border-border-dark p-6 gap-6">
+                        <h1 className="text-xl font-bold text-white">SETUP CONFIG</h1>
+                        <div className="flex gap-2"><button className="flex-1 py-2 bg-primary/20 text-primary border border-primary/50 rounded font-bold">Blue</button><button className="flex-1 py-2 hover:bg-white/5 text-text-secondary rounded font-bold">Red</button></div>
+                        <div className="space-y-4">
+                             <div className="flex justify-between"><span className="text-sm">Infantry</span><span className="text-primary font-mono">42</span></div>
+                             <div className="h-2 bg-black rounded overflow-hidden"><div className="h-full bg-primary w-[42%]"></div></div>
+                        </div>
+                         <button className="w-full py-3 bg-primary text-white font-bold rounded mt-auto">DEPLOY UNITS</button>
+                    </aside>
+                    <main className="flex-1 bg-[#0d0f12] relative flex items-center justify-center">
+                        <div className="w-[400px] h-[400px] border border-border-dark grid grid-cols-10 gap-1 p-1">
+                            {Array.from({length: 100}).map((_, i) => (
+                                <div key={i} className={`border border-white/5 rounded-sm ${i === 12 ? 'bg-red-900/50' : i === 45 ? 'bg-blue-900/50' : 'bg-[#121417]'}`}></div>
+                            ))}
+                        </div>
+                    </main>
+                </div>
+            </div>
+        );
+
+        // Screen 2: Mid Simulation
+        const MidSimulation = () => (
+             <div className="flex flex-col h-full bg-[#121720]">
+                <header className="flex items-center justify-between border-b border-gray-800 px-6 py-3 bg-[#121720]">
+                     <div className="flex items-center gap-4 text-primary"><span className="material-symbols-outlined text-2xl">grid_view</span><h2 className="text-white font-bold uppercase">Block Tactics</h2><span className="px-2 py-0.5 bg-primary/10 rounded text-xs">SIM ACTIVE</span></div>
+                </header>
+                <div className="flex flex-1 overflow-hidden">
+                    <aside className="w-64 bg-[#1a1e26] border-r border-gray-800 p-4 hidden lg:block"><h3 className="text-sm font-bold uppercase mb-4 text-white">Roster</h3><div className="space-y-2"><div className="p-2 bg-black/20 rounded text-xs text-white">Heavy Tank Alpha</div><div className="p-2 bg-black/20 rounded text-xs text-white">Recon Scout</div></div></aside>
+                    <main className="flex-1 relative bg-[#0b0d10] flex items-center justify-center perspective-[1000px]">
+                        <div className="w-[600px] h-[400px] bg-white/5 border border-white/10 relative transform rotate-x-12 scale-90">
+                            <div className="absolute top-1/2 left-1/3 w-12 h-12 bg-primary flex items-center justify-center text-white"><span className="material-symbols-outlined">shield</span></div>
+                             <div className="absolute top-[40%] right-[30%] w-12 h-12 bg-red-500 flex items-center justify-center text-white animate-pulse"><span className="material-symbols-outlined">change_history</span></div>
+                             <div className="absolute top-10 left-10 text-xs text-primary font-mono">OBJECTIVE UPDATED</div>
+                        </div>
+                         <div className="absolute bottom-8 flex gap-2 bg-[#1a1e26] p-2 rounded border border-gray-700"><button className="px-4 py-2 bg-primary text-white font-bold rounded">PAUSE</button><div className="px-4 py-2 text-white font-mono">04:12</div></div>
+                    </main>
+                </div>
+             </div>
+        );
+
+        // Screen 3: Battle Results
+        const BattleResults = () => (
+            <div className="flex flex-col h-full bg-[#0f1115]">
+                 <header className="flex items-center justify-between border-b border-[#2a2f37] px-6 py-3 bg-[#121417]"><div className="flex items-center gap-3 text-white"><span className="material-symbols-outlined text-primary">sports_esports</span><h2 className="font-bold uppercase">Tactical Command</h2></div></header>
+                 <main className="flex-1 relative flex items-center justify-center bg-[#0f1115]">
+                    <div className="bg-[#161b22] border border-[#3d4551] rounded-lg shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col">
+                        <div className="bg-gradient-to-r from-primary/20 to-transparent p-8 text-center border-b border-[#2a2f37]">
+                            <h1 className="text-4xl font-bold text-primary uppercase mb-2">Blue Team Victory!</h1>
+                            <p className="text-gray-400 text-sm tracking-widest uppercase">Sector 7G Secured</p>
+                        </div>
+                        <div className="p-8 grid grid-cols-3 gap-6">
+                            <div className="bg-[#121417] p-4 rounded border border-[#3d4551] text-center"><span className="material-symbols-outlined text-gray-500 text-3xl mb-2">shield</span><div className="text-2xl font-bold text-white">12/20</div><div className="text-xs text-primary uppercase">Survived</div></div>
+                            <div className="bg-[#121417] p-4 rounded border border-[#3d4551] text-center"><span className="material-symbols-outlined text-gray-500 text-3xl mb-2">swords</span><div className="text-2xl font-bold text-white">4,500</div><div className="text-xs text-primary uppercase">Damage</div></div>
+                            <div className="bg-[#121417] p-4 rounded border border-[#3d4551] text-center"><span className="material-symbols-outlined text-gray-500 text-3xl mb-2">bolt</span><div className="text-2xl font-bold text-white">85%</div><div className="text-xs text-primary uppercase">Efficiency</div></div>
+                        </div>
+                        <div className="p-6 bg-[#121417]/50 border-t border-[#2a2f37] flex justify-center">
+                            <button className="bg-primary hover:bg-primary/90 text-white font-bold py-3 px-8 rounded uppercase tracking-widest">Review Turns</button>
+                        </div>
+                    </div>
+                 </main>
+            </div>
+        );
+
+        // Screen 4: Design System
+        const DesignSystem = () => (
+             <div className="flex h-full bg-[#121720]">
+                <aside className="w-64 bg-[#1a222e] border-r border-slate-700 flex flex-col"><div className="p-6 border-b border-slate-700 text-white font-bold">STRATEGY<br/><span className="text-primary text-sm">System Library</span></div><nav className="p-4 space-y-2"><div className="text-xs text-slate-400 uppercase">Foundation</div><div className="p-2 bg-primary/10 text-primary rounded">Colors & Type</div><div className="p-2 text-slate-400 hover:text-white cursor-pointer">Components</div></nav></aside>
+                <main className="flex-1 overflow-y-auto p-8">
+                    <h1 className="text-4xl font-bold text-white mb-8">Design System</h1>
+                    <section className="mb-12">
+                        <h3 className="text-xl font-bold text-white mb-4 border-b border-slate-700 pb-2">Colors</h3>
+                        <div className="grid grid-cols-4 gap-6">
+                            <div className="space-y-2"><div className="h-24 bg-[#4A90E2] rounded-lg"></div><p className="text-white font-bold">Game Blue</p></div>
+                            <div className="space-y-2"><div className="h-24 bg-[#C0392B] rounded-lg"></div><p className="text-white font-bold">Game Red</p></div>
+                             <div className="space-y-2"><div className="h-24 bg-[#4b85e2] rounded-lg"></div><p className="text-white font-bold">UI Primary</p></div>
+                             <div className="space-y-2"><div className="h-24 bg-[#121720] border border-gray-600 rounded-lg"></div><p className="text-white font-bold">Dark Bg</p></div>
+                        </div>
+                    </section>
+                    <section>
+                         <h3 className="text-xl font-bold text-white mb-4 border-b border-slate-700 pb-2">Grid</h3>
+                         <div className="flex items-center gap-8">
+                            <div className="w-[48px] h-[48px] bg-primary/20 border border-primary flex items-center justify-center text-primary text-xs">48px</div>
+                            <p className="text-gray-400 text-sm max-w-md">The game world is constructed on a 48x48 pixel grid.</p>
+                         </div>
+                    </section>
+                </main>
+             </div>
+        );
+
+        // Screen 5: Tech Grid
+        const TechGrid = () => (
+             <div className="flex flex-col h-full bg-[#111418]">
+                <header className="flex items-center justify-between px-6 py-3 border-b border-[#292f38]"><div className="flex gap-2 text-white font-bold"><span className="material-symbols-outlined text-primary">dataset</span>Config: Alpha_Strike_01</div></header>
+                <div className="flex flex-1 overflow-hidden">
+                    <aside className="w-80 bg-[#111418] border-r border-[#292f38] p-6 text-white overflow-y-auto">
+                        <h3 className="text-xs font-bold text-white/60 uppercase mb-4">World Params</h3>
+                        <div className="mb-6"><div className="flex justify-between text-sm mb-2"><span>Terrain Density</span><span className="text-primary font-mono">45%</span></div><div className="h-1 bg-gray-700 rounded"><div className="h-full bg-primary w-[45%] relative"><div className="absolute right-0 top-1/2 -translate-y-1/2 size-3 bg-white rounded-full shadow"></div></div></div></div>
+                        <div className="p-4 bg-[#1a202c] rounded border border-[#292f38]"><h4 className="font-bold text-sm mb-2">Heavy Tank Mk.IV</h4><button className="w-full py-2 bg-primary rounded text-sm font-bold mt-2">Deploy Unit</button></div>
+                    </aside>
+                    <main className="flex-1 bg-[#0b0e11] flex items-center justify-center p-8 relative overflow-auto">
+                         <div className="relative w-[480px] h-[480px] bg-[#1a202c] border border-white/20 grid grid-cols-10 grid-rows-10">
+                            {/* Grid Lines via CSS ideally, but here simulated */}
+                            <div className="absolute top-[96px] left-[144px] w-[48px] h-[48px] bg-[#363d4a] border border-white/30 flex items-center justify-center"><span className="material-symbols-outlined text-white text-sm">propane_tank</span></div>
+                            <div className="absolute top-[192px] left-[240px] w-[48px] h-[48px] border-2 border-dashed border-primary flex items-center justify-center opacity-70"><span className="material-symbols-outlined text-primary">add_circle</span></div>
+                         </div>
+                    </main>
+                </div>
+             </div>
+        );
+
+        // Screen 6: Combat Logic
+        const CombatLogic = () => (
+             <div className="flex flex-col h-full bg-[#111721]">
+                <header className="flex items-center justify-between px-6 py-3 bg-[#111417] border-b border-[#292f38]"><div className="flex gap-2 text-white font-bold"><span className="material-symbols-outlined text-primary">terminal</span>Combat Logic Debugger</div></header>
+                <div className="flex flex-1 overflow-hidden">
+                    <main className="flex-1 relative bg-[#0d1116] sim-grid">
+                        {/* Viz Layer */}
+                        <svg className="absolute inset-0 w-full h-full pointer-events-none z-10">
+                            <path d="M 320,380 Q 550,100 780,380" fill="none" stroke="#ff9f43" strokeWidth="2" strokeDasharray="8,4" />
+                            <line x1="800" y1="400" x2="950" y2="400" stroke="#2ecc71" strokeWidth="2" />
+                        </svg>
+                        {/* Units */}
+                        <div className="absolute top-[380px] left-[320px] -translate-x-1/2 -translate-y-1/2 w-0 h-0 border-l-[15px] border-l-transparent border-r-[15px] border-r-transparent border-b-[30px] border-b-[#ff9f43]"></div>
+                        <div className="absolute top-[380px] left-[780px] -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-[#2ecc71] rotate-45 border-2 border-white/20"></div>
+                         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-[#1a2029]/90 backdrop-blur p-2 rounded flex gap-4 border border-[#3d4552]">
+                             <div className="flex gap-2 text-white"><span className="material-symbols-outlined">skip_previous</span><span className="material-symbols-outlined text-primary">play_arrow</span><span className="material-symbols-outlined">skip_next</span></div>
+                             <div className="w-64 h-1.5 bg-gray-700 self-center rounded overflow-hidden"><div className="h-full bg-primary w-[25%]"></div></div>
+                         </div>
+                    </main>
+                    <aside className="w-80 bg-[#111417] border-l border-[#292f38] flex flex-col">
+                        <div className="p-4 bg-[#161b22] border-b border-[#292f38] text-white font-bold text-sm">Event Log</div>
+                        <div className="p-2 space-y-2 font-mono text-xs overflow-y-auto">
+                            <div className="p-2 bg-[#1a2029] rounded border border-transparent hover:border-[#292f38] cursor-pointer">
+                                <div className="text-gray-500 mb-1">[T+450ms] <span className="text-primary">#evt_4092</span></div>
+                                <div className="text-gray-300"><span className="text-[#2ecc71] font-bold">Tank_01</span> fired at Target.</div>
+                            </div>
+                            <div className="p-2 bg-[#1a2029]/50 rounded text-gray-400">
+                                <div className="text-gray-500 mb-1">[T+300ms]</div>
+                                <div>Global Tick Update</div>
+                            </div>
+                        </div>
+                    </aside>
+                </div>
+             </div>
+        );
+        
+        // Screen 7: Setup Light
+         const SetupLight = () => (
+             <div className="flex flex-col h-full bg-[#f6f7f8] text-[#111417]">
+                 <header className="flex items-center justify-between px-6 py-3 bg-white border-b border-[#f0f2f4] shadow-sm"><div className="flex gap-2 items-center font-bold text-lg"><span className="material-symbols-outlined text-primary">grid_view</span>Block Warfare Simulator</div></header>
+                 <div className="flex flex-1 overflow-hidden">
+                     <aside className="w-80 bg-white border-r border-[#f0f2f4] flex flex-col p-6 gap-6">
+                        <div><h2 className="text-2xl font-bold flex items-center gap-2"><span className="material-symbols-outlined text-primary">flag</span>Phe Xanh</h2><p className="text-gray-500 text-sm">Blue Faction Setup</p></div>
+                        <div className="space-y-4">
+                            <div><div className="flex justify-between text-sm mb-1 font-medium"><span>Infantry</span><span className="bg-primary/10 text-primary px-2 rounded">24</span></div><div className="h-2 bg-gray-200 rounded"><div className="h-full bg-primary w-[60%]"></div></div></div>
+                             <div><div className="flex justify-between text-sm mb-1 font-medium"><span>Tanks</span><span className="bg-primary/10 text-primary px-2 rounded">06</span></div><div className="h-2 bg-gray-200 rounded"><div className="h-full bg-primary w-[25%]"></div></div></div>
+                        </div>
+                        <button className="w-full py-3 bg-primary text-white font-bold rounded mt-auto flex items-center justify-center gap-2"><span className="material-symbols-outlined">add</span>Add Unit</button>
+                     </aside>
+                     <main className="flex-1 bg-[#f6f7f8] flex flex-col">
+                        <div className="flex-1 flex items-center justify-center p-8 overflow-auto">
+                             <div className="w-[480px] h-[480px] bg-white border border-gray-300 relative grid grid-cols-10 grid-rows-10">
+                                <div className="absolute top-[48px] left-[48px] flex items-center justify-center w-[48px] h-[48px]"><span className="material-symbols-outlined text-primary text-3xl">check_box_outline_blank</span></div>
+                             </div>
+                        </div>
+                        <div className="h-20 bg-white border-t border-[#f0f2f4] flex items-center justify-between px-10">
+                            <div className="flex items-center gap-4"><button className="size-10 rounded-full bg-gray-100 flex items-center justify-center"><span className="material-symbols-outlined">skip_previous</span></button><button className="size-12 rounded-full bg-primary text-white flex items-center justify-center shadow-lg"><span className="material-symbols-outlined text-4xl">play_arrow</span></button><button className="size-10 rounded-full bg-gray-100 flex items-center justify-center"><span className="material-symbols-outlined">skip_next</span></button></div>
+                        </div>
+                     </main>
+                 </div>
+             </div>
+         );
+
+        // Screen 8: Active Sim 3D
+        const ActiveSim3D = () => (
+             <div className="flex flex-col h-full bg-[#111721]">
+                 <header className="flex items-center justify-between px-6 py-3 bg-white dark:bg-[#111417] border-b border-gray-800"><div className="font-bold text-white">Block Warfare Simulator</div><div className="text-primary font-bold">Turn 7 / 15</div><div className="size-10 rounded-full bg-gray-700"></div></header>
+                 <div className="flex flex-1 overflow-hidden relative">
+                    <aside className="w-80 bg-[#111417] border-r border-gray-800 p-4 relative z-10"><h3 className="text-gray-500 font-bold uppercase text-sm mb-4">Battle Log</h3><div className="space-y-2 opacity-60 text-sm font-mono text-gray-400"><div>[T6] Blue Tank moved to E4</div><div className="text-red-400">[T6] Blue Tank took 15 DMG</div></div></aside>
+                    <main className="flex-1 relative bg-[#0d1116] flex items-center justify-center perspective-[1000px] overflow-hidden">
+                        <div className="relative w-[800px] h-[500px] bg-[#161b22] border-2 border-[#292f38] transform rotate-x-12 scale-90 shadow-2xl">
+                             <div className="absolute top-32 left-24 w-12 h-12 bg-[#4884e5] rounded shadow-lg flex items-center justify-center text-white"><span className="material-symbols-outlined">local_shipping</span></div>
+                             <div className="absolute top-48 right-32 w-10 h-10 bg-[#e55848] rounded shadow-lg flex items-center justify-center text-white"><span className="material-symbols-outlined">person</span></div>
+                             {/* Projectile */}
+                             <div className="absolute top-[180px] left-[160px] w-24 h-1 bg-yellow-400 transform rotate-12 origin-left"></div>
+                             {/* Explosion */}
+                             <div className="absolute top-[230px] right-[135px] text-white font-bold text-xl animate-bounce">-45</div>
+                        </div>
+                        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4">
+                             <div className="bg-[#111417]/90 p-3 rounded border border-gray-700 text-white w-64 flex items-center gap-3"><div className="size-10 bg-[#4884e5] rounded flex items-center justify-center"><span className="material-symbols-outlined">local_shipping</span></div><div><div className="font-bold text-sm">Heavy Tank Unit 04</div><div className="text-xs text-gray-400">Firing Main Cannon</div></div></div>
+                             <button className="size-12 rounded bg-primary text-white flex items-center justify-center shadow-lg hover:scale-105 transition-transform"><span className="material-symbols-outlined text-2xl">pause</span></button>
+                        </div>
+                    </main>
+                    <aside className="w-80 bg-[#111417] border-l border-gray-800 p-4 relative z-10"><h3 className="text-gray-500 font-bold uppercase text-sm mb-4">Unit Inspection</h3><div className="space-y-4"><div className="h-32 bg-gray-800 rounded"></div><div className="text-white font-bold text-lg">Heavy Tank Mk.IV</div><div className="grid grid-cols-2 gap-4"><div className="p-2 bg-gray-800 rounded"><div className="text-xs text-gray-400">HP</div><div className="font-bold text-white">850</div></div><div className="p-2 bg-gray-800 rounded"><div className="text-xs text-gray-400">Ammo</div><div className="font-bold text-white">12/40</div></div></div></div></aside>
+                 </div>
+             </div>
+        );
+
+        // Screen 9: Victory Modal
+        const VictoryModal = () => (
+             <div className="relative w-full h-full bg-[#112116] flex items-center justify-center">
+                 <div className="absolute inset-0 opacity-30 bg-[url('https://lh3.googleusercontent.com/aida-public/AB6AXuDD0F8RfOMsZ9hEKBMkkN7rNy_AWoiBIMd2D3paNaqARrCpbLZ5YLpPwxIBlj8Q-cCZqAL1TpFLdpPVW1afp_TUsX-tNeDhXxeXD767RAeUYZtDGSnSQqVvX8-6G1BXj9S9kvng6QqDaDkqbJU9FCzyQ9B9phPb1kmcLAPa8rwxriZQZPouAC5DX2J01bdo5iQktjrNew99GgjCMCEoJ7DB0cD-wmFZ4HFxkEvtNKcaEJOBkYPiJ038BbaeQhsES_5dQfSDssQcwRM')] bg-cover bg-center"></div>
+                 <div className="relative z-10 w-full max-w-[480px] bg-[#112116] border border-[#3c5344] rounded-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+                     <div className="flex flex-col items-center pt-10 pb-6 px-6">
+                         <span className="material-symbols-outlined text-7xl text-[#19e65e] mb-4">emoji_events</span>
+                         <h1 className="text-white text-3xl font-bold uppercase text-center">PHE XANH THẮNG</h1>
+                     </div>
+                     <div className="px-6 pb-6 grid grid-cols-2 gap-3">
+                         <div className="p-4 rounded bg-white/5 border border-white/5"><div className="flex gap-2 text-gray-400 text-sm mb-1"><span className="material-symbols-outlined text-sm">groups</span>Survivors</div><div className="text-2xl font-bold text-white">18/30</div></div>
+                         <div className="p-4 rounded bg-white/5 border border-white/5"><div className="flex gap-2 text-gray-400 text-sm mb-1"><span className="material-symbols-outlined text-sm">swords</span>Damage</div><div className="text-2xl font-bold text-white">842</div></div>
+                     </div>
+                     <div className="p-6 bg-[#0d1810] flex gap-3">
+                         <button className="flex-1 h-12 rounded bg-[#19e65e] text-[#112116] font-bold">TRẬN MỚI</button>
+                         <button className="flex-1 h-12 rounded bg-[#2a3830] text-white font-bold border border-[#3c5344]">XUẤT LOG</button>
+                     </div>
+                 </div>
+             </div>
+        );
+
+        // Screen 10: Unit Showcase All
+        const UnitShowcaseAll = () => (
+             <div className="flex flex-col h-full bg-[#101822]">
+                 <header className="flex items-center justify-between px-6 py-3 bg-[#111418] border-b border-[#282f39]"><div className="flex items-center gap-4 text-white font-bold"><div className="size-8 bg-blue-500/20 rounded flex items-center justify-center text-blue-500"><span className="material-symbols-outlined">deployed_code</span></div>Block Warfare Simulator</div></header>
+                 <main className="flex-1 flex overflow-hidden">
+                     <aside className="w-80 bg-[#111418] border-r border-[#282f39] hidden md:flex flex-col">
+                        <div className="p-6 pb-2 text-white font-medium">Unit Selection</div>
+                        <div className="p-4 space-y-2">
+                             <button className="w-full flex items-center gap-4 px-3 py-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-left"><div className="size-10 rounded bg-blue-500/20 flex items-center justify-center text-blue-500"><span className="material-symbols-outlined">shield_person</span></div><div className="flex-1"><p className="text-white text-sm font-bold">Infantry</p><p className="text-blue-500 text-xs">Class: Light</p></div></button>
+                             <button className="w-full flex items-center gap-4 px-3 py-3 rounded-xl hover:bg-[#1e2329] text-left"><div className="size-10 rounded bg-[#282f39] flex items-center justify-center text-gray-400"><span className="material-symbols-outlined">local_shipping</span></div><div className="flex-1"><p className="text-white text-sm font-medium">Tank</p></div></button>
+                        </div>
+                     </aside>
+                     <div className="flex-1 relative bg-gradient-to-b from-[#13161c] to-[#0b0e11] flex flex-col items-center justify-center">
+                        <div className="absolute top-10 left-10"><h1 className="text-5xl font-bold text-white">Infantry Class</h1><p className="text-gray-400 mt-2">Standard issue blue unit.</p></div>
+                        <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuBljK-Po-CaQ8epfuRnjoJrN8MMt0-HvZlfU9c9PCTmjHk_eTuwFwJ1H2OZj_pIf-u15eiAcxPYTaiX7jHW6tuXJuHaMhVYhEQcJQgrV9JXuoi1mSDnnB0bCqjBHaIYIlRam0slhHb29cKBfPS0Szh3vHbZWAL2kh5rR-29YUStFedSy6xkBjHzmewItU4DPXDVOmC87v5lTr6S7xnBFcZogf0AsVCA_ezDbGSNWR2z13UV1K0HVJKUSWwxYiXzq9vHlwJvvawxOTI" alt="3D Unit" className="w-[60%] h-auto object-contain drop-shadow-2xl"/>
+                        <div className="absolute bottom-10 bg-[#1e2329]/90 backdrop-blur p-2 rounded-2xl flex gap-2 border border-[#282f39]">
+                            <button className="w-20 py-2 rounded-xl bg-blue-500 text-white flex flex-col items-center justify-center"><span className="material-symbols-outlined mb-1">view_in_ar</span><span className="text-[10px] font-bold uppercase">Inspect</span></button>
+                            <button className="w-20 py-2 rounded-xl text-gray-400 hover:bg-[#282f39] flex flex-col items-center justify-center"><span className="material-symbols-outlined mb-1">palette</span><span className="text-[10px] font-bold uppercase">Paint</span></button>
+                        </div>
+                     </div>
+                 </main>
+             </div>
+        );
+        
+        // Screen 11: Unit Infantry (Red)
+        const UnitInfantry = () => (
+             <div className="flex flex-col h-full bg-[#181111] text-white font-display">
+                <header className="flex items-center justify-between px-10 py-3 bg-[#181111]/90 border-b border-[#392828]"><div className="flex items-center gap-4"><span className="material-symbols-outlined text-[#f20d0d] text-3xl">hexagon</span><h2 className="font-bold tracking-wider">RED TEAM <span className="text-[#f20d0d]">DB</span></h2></div></header>
+                <div className="border-b border-[#392828] bg-[#181111]/50 px-10 py-3 flex justify-between items-center"><div className="text-xs font-bold tracking-widest text-[#ba9c9c]">RED TEAM > ASSET LIBRARY > <span className="text-[#f20d0d]">INFANTRY-01</span></div><div className="text-[#f20d0d] text-[10px] font-bold bg-[#f20d0d]/10 px-2 py-1 rounded border border-[#f20d0d]/20">SYSTEM ONLINE</div></div>
+                <div className="flex-1 flex max-w-[1400px] mx-auto w-full p-8 gap-8">
+                    <div className="w-2/3 relative bg-black rounded-xl overflow-hidden border border-[#392828] shadow-2xl">
+                        <div className="absolute inset-0 bg-cover bg-center opacity-80" style={{backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuAhvBMKlT5ePev8NkqwUiETMYJCfQnu2zBHNv5H9lZL2jS3aAZkPbpBNBmaBsQ62VWQOnr6YSQUohkl36uSgXyOQJfm3498zu3kPw-RGhepkM0MeFwx9AJPp01r9_RPwXyMlGwqkaGPZtfrejstDuNbNJbFLL8bZRMUgFsWblAdBsZS8xLGVwGlezn4qzquNtkbXd3I2-GcTyMlPNl-R0sICkH5UzJfhkHz-oM9uOXNWuyRssz3kEIwOJnnYff8msI8klky3FRpfZo')"}}></div>
+                        <div className="absolute top-6 left-6"><h1 className="text-5xl font-bold tracking-tighter">INFANTRY-01</h1><p className="text-[#f20d0d] font-mono text-sm tracking-widest">CLASS: LIGHT ASSAULT</p></div>
+                    </div>
+                    <div className="w-1/3 flex flex-col gap-6">
+                        <div className="bg-[#261a1a] border border-[#392828] rounded-xl p-6">
+                             <div className="flex justify-between items-center mb-4"><h3 className="text-sm font-bold tracking-widest flex items-center gap-2"><span className="material-symbols-outlined text-[#f20d0d] text-sm">analytics</span> UNIT ANALYTICS</h3></div>
+                             <div className="space-y-4">
+                                <div><div className="flex justify-between text-xs mb-1 text-white/60"><span>ARMOR</span><span className="text-[#f20d0d] font-bold">HIGH</span></div><div className="h-1.5 bg-black/40 rounded-full"><div className="h-full bg-[#f20d0d] w-[85%]"></div></div></div>
+                                <div><div className="flex justify-between text-xs mb-1 text-white/60"><span>FIREPOWER</span><span className="text-[#f20d0d] font-bold">MED</span></div><div className="h-1.5 bg-black/40 rounded-full"><div className="h-full bg-white/40 w-[60%]"></div></div></div>
+                             </div>
+                        </div>
+                        <div className="flex-grow flex flex-col gap-3">
+                            <h3 className="text-xs font-bold tracking-widest uppercase mb-1 text-white/40">Queue</h3>
+                            <button className="flex items-center gap-4 bg-[#f20d0d]/10 border border-[#f20d0d] p-3 rounded-lg"><div className="size-16 rounded bg-black"></div><div><h4 className="font-bold text-sm">INFANTRY-01</h4><p className="text-[#f20d0d] text-[10px] uppercase">Active</p></div></button>
+                        </div>
+                    </div>
+                </div>
+             </div>
+        );
+
+        // Screen 12: Unit Tank (Olive)
+        const UnitTank = () => (
+             <div className="flex flex-col h-full bg-[#141811]">
+                 <header className="flex items-center justify-between px-10 py-3 bg-[#141811] border-b border-[#2f3928]"><div className="flex items-center gap-4"><div className="size-8 bg-[#62d411]/20 rounded flex items-center justify-center text-[#62d411]"><span className="material-symbols-outlined">token</span></div><h2 className="text-white font-bold uppercase">Block Tank Model</h2></div></header>
+                 <div className="flex flex-1 overflow-hidden">
+                    <aside className="w-72 bg-[#182210] border-r border-[#2f3928] hidden lg:block p-2 text-white text-sm"><div className="p-2">Structure Hierarchy</div><div className="p-2 hover:bg-[#2f3928] rounded cursor-pointer">Main Chassis</div><div className="pl-4 p-2 bg-[#62d411]/10 text-[#62d411] rounded border border-[#62d411]/30">Turret Assembly</div></aside>
+                    <main className="flex-1 relative bg-[#0a0c08] flex items-center justify-center">
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,#1c2518_0%,#0a0c08_70%)]"></div>
+                        <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuBu9gx98i4pK_0_k0X_QWL1iKbLiPdg4FNj66kdtQ096qYof5_57ycFIy655shktY4cv7NljWGnvvS79Rmx4WrMzPSPsdn0JVEVNfvnntv7bZXWTaOlRXnvsxbL_GZ7WAvOBLOzMY67PgB6y_JqD5eSBaPE4_gOKHWfNsEpRbfAdo9lImFi456hZc4fC5Pd8oxLnuGxDwmKHB9EOidzHPeC2J4CPK0SDOX3TWudmajhuxiEc-dmOdSNe3asHJI6BA2nPTGHA4SlYgs" className="relative z-10 max-w-[80%] max-h-[80%] object-contain drop-shadow-2xl hover:scale-105 transition-transform" />
+                        <div className="absolute bottom-6 right-6 flex flex-col gap-2"><button className="size-10 bg-[#141811] border border-[#2f3928] text-white flex items-center justify-center"><span className="material-symbols-outlined">add</span></button><button className="size-10 bg-[#141811] border border-[#2f3928] text-white flex items-center justify-center"><span className="material-symbols-outlined">remove</span></button></div>
+                    </main>
+                    <aside className="w-80 bg-[#182210] border-l border-[#2f3928] overflow-y-auto">
+                        <div className="flex bg-[#141811] border-b border-[#2f3928]"><button className="flex-1 py-3 text-center text-sm font-bold text-white border-b-2 border-[#62d411]">Specs</button><button className="flex-1 py-3 text-center text-sm font-bold text-[#a8b99d]">Material</button></div>
+                        <div className="p-6 space-y-6">
+                            <div><h1 className="text-xl font-bold text-white">Heavy Assault<br/>Configuration</h1><p className="text-sm text-[#a8b99d] mt-2">Reinforced composite chassis optimized for frontal assaults.</p></div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="bg-[#141811] border border-[#2f3928] p-3 rounded"><p className="text-[#a8b99d] text-xs">Mass</p><p className="text-white font-bold">45.0t</p></div>
+                                <div className="bg-[#141811] border border-[#2f3928] p-3 rounded"><p className="text-[#a8b99d] text-xs">Firepower</p><p className="text-white font-bold">120mm</p></div>
+                            </div>
+                        </div>
+                    </aside>
+                 </div>
+             </div>
+        );
+
+        // Screen 13: Unit Artillery
+        const UnitArtillery = () => (
+             <div className="flex flex-col h-full bg-[#181511]">
+                 <header className="flex items-center justify-between px-10 py-3 bg-[#181511] border-b border-[#393228] z-20"><div className="flex items-center gap-4 text-white"><span className="material-symbols-outlined text-[#f2930d] text-3xl">hexagon</span><h2 className="font-bold">STRAT-BLOCK COMMAND</h2></div></header>
+                 <div className="flex-1 overflow-y-auto p-8">
+                     <div className="max-w-[1200px] mx-auto">
+                        <div className="flex justify-between items-end border-b border-[#393228]/50 pb-6 mb-6">
+                            <div><h1 className="text-white text-4xl font-black uppercase">Heavy Block Artillery</h1><p className="text-[#baad9c]">Tier 3 Siege Unit | Desert Camouflage</p></div>
+                            <button className="h-10 px-4 bg-[#f2930d] text-[#181511] font-bold rounded flex items-center gap-2"><span className="material-symbols-outlined">download</span> Export Spec</button>
+                        </div>
+                        <div className="grid grid-cols-12 gap-6">
+                            <div className="col-span-3 flex flex-col gap-4">
+                                <div className="bg-[#1e1a14] border border-[#393228] rounded-xl p-5">
+                                    <h3 className="text-[#baad9c] text-xs font-bold uppercase mb-4">Unit Statistics</h3>
+                                    <div className="space-y-4">
+                                        <div><div className="flex justify-between text-sm mb-1 text-white"><span>Firepower</span><span className="text-[#f2930d] font-bold">95/100</span></div><div className="h-1.5 bg-[#393228] rounded-full"><div className="h-full bg-[#f2930d] w-[95%]"></div></div></div>
+                                        <div><div className="flex justify-between text-sm mb-1 text-white"><span>Range</span><span className="text-[#f2930d] font-bold">88/100</span></div><div className="h-1.5 bg-[#393228] rounded-full"><div className="h-full bg-[#f2930d] w-[88%]"></div></div></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="col-span-6">
+                                <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden border border-[#393228] bg-[#12100d] flex items-center justify-center p-8">
+                                    <div className="absolute inset-0 opacity-20 bg-[linear-gradient(#393228_1px,transparent_1px),linear-gradient(90deg,#393228_1px,transparent_1px)] bg-[size:40px_40px]"></div>
+                                    <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDaxwNq0eBDUSkPKJBc_wphEkRQC0CEsbikyVRq0zIg-wYVJzZ9_owDK_VlOiwzTChSJcne6l71VY9-KGX5n_BIZqKaopFZTWR8sC6FyJmqGQLUluxBEeL2WLHFmaP_5OMn1FlrqLAin_IPmp4Cqqqx8FpVUTcY13QTXPwVG_trVx0Dq28vTtC3tDY92qtKiS2LwVPB5Ccu42qpj_Ri1QXK0EAIJe_WHURtn6tPx_StQM5PBycqbNiWcm327p6WE1puf1xcS1WNHJU" className="w-full h-full object-contain drop-shadow-2xl relative z-10"/>
+                                </div>
+                            </div>
+                            <div className="col-span-3">
+                                <div className="bg-[#1e1a14] border border-[#393228] rounded-xl h-full p-4">
+                                    <h3 className="text-white text-sm font-bold border-b border-[#393228] pb-2 mb-2">COMPONENT BREAKDOWN</h3>
+                                    <div className="space-y-2">
+                                        <div className="p-3 bg-[#393228]/50 rounded text-white text-sm font-bold flex gap-3 items-center"><span className="material-symbols-outlined text-[#baad9c]">track_changes</span> 155mm Cannon</div>
+                                        <div className="p-3 rounded hover:bg-[#393228] text-white text-sm flex gap-3 items-center"><span className="material-symbols-outlined text-[#baad9c]">grid_view</span> Quad-Stabilizers</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                     </div>
+                 </div>
+             </div>
+        );
+
+        // Screen 14: Unit Fighter Jet
+        const UnitFighter = () => (
+             <div className="flex flex-col h-full bg-[#101b22]">
+                 <header className="flex items-center justify-between px-6 py-3 bg-[#151f28] border-b border-slate-800"><div className="flex items-center gap-4 text-white"><div className="size-8 text-[#0d93f2]"><svg fill="currentColor" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M4 4H17.3334V17.3334H30.6666V30.6666H44V44H4V4Z"></path></svg></div><h2 className="text-lg font-bold">Voxel Strategy</h2></div></header>
+                 <main className="flex-1 flex">
+                     <div className="relative w-3/4 bg-[#0a1014] flex items-center justify-center p-8">
+                         <div className="absolute inset-0 opacity-30 bg-[linear-gradient(to_right,rgba(13,147,242,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(13,147,242,0.05)_1px,transparent_1px)] bg-[size:40px_40px]"></div>
+                         <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuB_5QrUcgc7BydUirFbDfvRTGw7cs2X6HQT9VzAnCZBQSH0GRNVZgabZkYsQnEtxuUbZwiEEQqx8IkO6BNVFQk7v5uvRx2Qt8kLOx4Ap_qainw2WcnLXZBW27WVFJy6r0zraPPaCiYXCQz6w9-1-fgPj1HSjXjiMMLMMV0yFugsdiixk5CxTBz2q0ihLVu7xWUiUtfc4M0sqYiBc6PqBbjCg5vSAjbkrE6ZfyAsWJGGao7R8TWeQGOmG-ni3ivynEqC92UycdXtXu4" className="w-full h-full object-contain max-h-[80vh] relative z-10"/>
+                         <div className="absolute top-6 left-6 flex gap-2"><div className="bg-[#101b22]/90 border border-slate-700 px-3 py-1 rounded text-xs font-bold uppercase text-[#0d93f2]">Live View</div></div>
+                     </div>
+                     <div className="w-1/4 bg-[#151f28] border-l border-slate-800 p-8 flex flex-col gap-6 text-white">
+                         <div><span className="text-[#0d93f2] text-xs font-bold uppercase">Air Superiority</span><h1 className="text-4xl font-black mt-2">XF-90 FIGHTER</h1></div>
+                         <div className="space-y-4">
+                             <div><div className="flex justify-between text-sm mb-1"><span>Speed</span><span className="text-[#0d93f2]">95/100</span></div><div className="h-2 bg-slate-700 rounded-full"><div className="h-full bg-[#0d93f2] w-[95%]"></div></div></div>
+                             <div><div className="flex justify-between text-sm mb-1"><span>Firepower</span><span className="text-[#0d93f2]">80/100</span></div><div className="h-2 bg-slate-700 rounded-full"><div className="h-full bg-[#0d93f2] w-[80%]"></div></div></div>
+                         </div>
+                         <button className="w-full h-12 bg-[#0d93f2] rounded-lg font-bold mt-auto">PURCHASE UNIT</button>
+                     </div>
+                 </main>
+             </div>
+        );
+
+        // Screen 15: Tech View Jet
+        const TechViewJet = () => (
+             <div className="flex flex-col h-full bg-[#222110] text-white">
+                 <header className="flex items-center justify-between px-6 py-3 border-b border-[#393828] bg-[#222110]"><div className="flex items-center gap-3"><span className="material-symbols-outlined text-[#f2df0d]">token</span><h2 className="font-bold">BLOCK STUDIO</h2></div></header>
+                 <div className="flex flex-1 overflow-hidden">
+                    <aside className="w-72 bg-[#222110] border-r border-[#393828] hidden lg:block p-2">
+                        <div className="p-2 bg-[#2d2c1b] rounded border border-[#393828] text-sm flex gap-2 items-center mb-2"><span className="material-symbols-outlined text-[#f2df0d] text-sm">deployed_code</span>Block Fighter Jet V2</div>
+                        <div className="pl-4 space-y-1 text-sm text-[#bab79c]"><div>Fuselage Assembly</div><div className="text-[#f2df0d]">Landing Gear Bay</div></div>
+                    </aside>
+                    <main className="flex-1 relative bg-[#1a1912] flex items-center justify-center">
+                        <div className="absolute top-4 left-4 z-10"><h1 className="text-2xl font-bold uppercase">Block Fighter Jet <span className="text-[#f2df0d]">V2</span></h1></div>
+                        <div className="w-full h-full max-w-4xl max-h-[600px] bg-contain bg-center bg-no-repeat" style={{backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuCdxz0RX49Q0Sm-kjzo2tro7-g1pBT9P12X1JwkKG6-7IURT2RcKZT3GGGxcIlWxBSf70n5s7f5muAb-7Ub0vTzwjxAM-VeNUuEdedI8qfEcD_pLOm8Dv3LKGkvEjHKkqpk4-k-udONPktFxlHOuFsFsXvBFyt0lPfohTY5A_n_6e8SG071WAOcMTut7NG5-0W8dYGomUBRzo9uGeHIsyJxoAzBkPL03jbdDU-HiempQkSluYxRl8O0KFlQOdCCH_v1AXY0miA6D1c')"}}></div>
+                        <div className="absolute bottom-6 bg-[#222110]/90 backdrop-blur p-1.5 rounded-xl border border-[#393828] flex items-center gap-2"><button className="size-9 rounded-lg text-[#bab79c] hover:bg-[#2d2c1b] flex items-center justify-center"><span className="material-symbols-outlined">3d_rotation</span></button><button className="h-9 px-3 rounded-lg bg-[#f2df0d]/10 text-[#f2df0d] border border-[#f2df0d]/20 text-xs font-bold uppercase hover:bg-[#f2df0d] hover:text-[#222110]">Explode View</button></div>
+                    </main>
+                    <aside className="w-80 bg-[#222110] border-l border-[#393828] hidden xl:block p-4">
+                        <h3 className="text-xs font-bold text-[#bab79c] uppercase mb-4">Component Properties</h3>
+                        <div className="bg-[#2d2c1b] border border-[#393828] rounded p-3 mb-6"><div className="flex gap-3 mb-3"><div className="size-12 bg-[#222110] rounded border border-[#393828] flex items-center justify-center"><span className="material-symbols-outlined text-[#bab79c]">image</span></div><div><h4 className="font-bold text-sm">Front Wheel Strut</h4><p className="text-xs text-[#bab79c]">ID: #BLK-994-A</p></div></div><div className="grid grid-cols-2 gap-2"><div className="bg-[#222110] p-2 rounded"><div className="text-[10px] text-[#bab79c] uppercase">Poly Count</div><div className="text-sm font-mono">1,240</div></div></div></div>
+                    </aside>
+                 </div>
+             </div>
+        );
+
+        // Screen 16: Battle Interface
+        const BattleInterface = () => (
+             <div className="flex flex-col h-full bg-[#101622] text-white">
+                 <header className="flex items-center justify-between px-6 py-3 bg-[#111318] border-b border-[#282e39]"><div className="flex items-center gap-4"><div className="size-8 bg-[#0d59f2] rounded flex items-center justify-center"><span className="material-symbols-outlined">grid_view</span></div><h2 className="font-bold uppercase">Block Warfare</h2></div><div className="flex items-center gap-8 bg-[#1a1f29] rounded-lg px-6 py-2 border border-[#282e39]"><div className="text-center"><div className="text-xs text-gray-400 uppercase">Turn</div><div className="font-bold text-xl">12</div></div><div className="text-center"><div className="text-xs text-gray-400 uppercase">Score</div><div className="font-bold text-xl text-[#0d59f2]">1,450</div></div></div></header>
+                 <div className="flex flex-1 overflow-hidden">
+                     <aside className="w-80 bg-[#111318]/95 border-r border-[#282e39] flex flex-col">
+                        <div className="p-4 bg-[#151921] border-b border-[#282e39] text-[#0d59f2] font-bold text-sm uppercase">Allied Forces</div>
+                        <div className="p-4 space-y-3">
+                            <div className="bg-[#1a1f29] p-3 rounded border-l-4 border-l-[#0d59f2] cursor-pointer"><div className="flex justify-between mb-2"><div className="flex items-center gap-2 text-sm font-bold"><span className="material-symbols-outlined text-gray-400 text-sm">directions_car</span>Heavy Tank Mk.IV</div><span className="text-xs text-green-400 bg-green-400/10 px-1 rounded">Active</span></div><div className="h-1.5 bg-[#3b4354] rounded-full overflow-hidden"><div className="h-full bg-[#0d59f2] w-[80%]"></div></div></div>
+                             <div className="bg-[#1a1f29] p-3 rounded border-l-4 border-l-gray-600 opacity-80"><div className="flex justify-between mb-2"><div className="flex items-center gap-2 text-sm font-bold"><span className="material-symbols-outlined text-gray-400 text-sm">person_add</span>Sniper Elite</div></div></div>
+                        </div>
+                     </aside>
+                     <main className="flex-1 relative bg-[#101622] flex items-center justify-center overflow-hidden">
+                        <div className="w-[800px] h-[600px] relative bg-cover bg-center" style={{backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuDmCaD-CbcF2M_lySbPIsLL7WSp9XvJs0aLg6ZaH1ZxkKFZsj2HvlbVFNSZ-RbGOKQRlzzYZ7YtKE9TQLELbdqZow1EDNCZDxJw4CsNRI9Bax20sGySzYXIRXMQ9dWJhu0P5ZDh162Hc5mG4U2-9HA0Q9h5z8aBRvnklCklWihNvvClEeVfZMgqymlERuNsvJnOOjib6u-6hf-4cC1sVu8LDsG3tMW6knmVtgAPIEEilwfo-4KYNRAeX44wCYSfOr4MvdpZoCrs8X4')"}}></div>
+                         <div className="absolute bottom-6 flex gap-2"><button className="p-3 rounded-full bg-[#111318]/90 border border-gray-700 hover:bg-[#0d59f2]"><span className="material-symbols-outlined">zoom_in</span></button></div>
+                     </main>
+                     <aside className="w-80 bg-[#111318]/95 border-l border-[#282e39] flex flex-col">
+                        <div className="p-4 bg-[#151921] border-b border-[#282e39] text-[#ef4444] font-bold text-sm uppercase text-right">Enemy Intel</div>
+                        <div className="p-4 space-y-6">
+                            <div className="bg-[#1a1f29] p-4 rounded border border-red-900/30"><h4 className="text-xs text-gray-400 font-bold uppercase mb-3">Threat Level</h4><div className="text-3xl font-bold text-[#ef4444]">HIGH</div><div className="text-xs text-gray-400 mt-1">Enemy concentrating fire.</div></div>
+                            <div><h4 className="text-xs text-gray-400 font-bold uppercase mb-2">Detected Hostiles</h4><div className="bg-[#1a1f29] rounded border border-[#282e39] p-2 text-xs text-white space-y-2"><div>Assault Mech (3)</div><div>Scout Drone (5)</div></div></div>
+                        </div>
+                     </aside>
+                 </div>
+                 <footer className="h-auto bg-[#111318] border-t border-[#282e39] p-3 flex justify-between items-center">
+                    <div className="text-sm text-gray-400 font-mono flex items-center gap-2"><span className="material-symbols-outlined">timer</span>EST. TURN: 45s</div>
+                    <div className="flex items-center gap-2"><button className="size-12 rounded-full bg-[#0d59f2] flex items-center justify-center text-white"><span className="material-symbols-outlined text-2xl">play_arrow</span></button></div>
+                 </footer>
+             </div>
+        );
+
+        // Screen 17: Intel Dashboard
+        const IntelDashboard = () => (
+             <div className="flex flex-col h-full bg-[#222110] text-white">
+                 <div className="absolute inset-0 pointer-events-none z-50 bg-[linear-gradient(to_bottom,rgba(255,255,255,0),rgba(255,255,255,0)_50%,rgba(0,0,0,0.2)_50%,rgba(0,0,0,0.2))] bg-[length:100%_4px]"></div>
+                 <header className="h-16 flex items-center justify-between px-6 bg-[#222110]/95 border-b border-[#f2df0d]/20 relative z-30"><div className="flex items-center gap-3 text-[#f2df0d]"><span className="material-symbols-outlined text-3xl">radar</span><h1 className="text-xl font-bold">INTEL OVERLAY</h1></div><div className="flex items-center gap-4 text-sm font-bold"><div className="border-l border-white/10 px-4"><span className="text-white/50 text-xs block">BLUE</span>85%</div><div className="border-l border-white/10 px-4"><span className="text-white/50 text-xs block">RED</span><span className="text-red-500">42%</span></div></div></header>
+                 <div className="flex flex-1 overflow-hidden relative z-10">
+                     <main className="flex-1 relative bg-black overflow-hidden">
+                        <div className="absolute inset-0 bg-cover bg-center opacity-60" style={{backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuDR2VvQ1Ay5gaMfw5N2ynRal08RQQl2s3pmfqOXKqaXTUbeRbAV9brBpNeOwdCqO1l2bxQ-js4Q6J-ep1Z8PNhYBXT7_vDHCLpU5Qv5IDKx-ui3Ak0Y45oeR2bEpi0cxxib4ox7lNfikt07_ZWJV7gfd8-Avl0I6bRMhUiFqbR8J2b22jIdon8n_bWFiWS6k0QQpPO7PpPHrMxHxoog6Euatd797LhypfGbRMOMhbhm1BHUnS7Ep-AsboZdZ4nG9q4_inbQ-fECtok')", filter: "grayscale(100%) contrast(120%) sepia(20%) hue-rotate(50deg)"}}></div>
+                        <div className="absolute inset-0 bg-[linear-gradient(to_right,#333_1px,transparent_1px),linear-gradient(to_bottom,#333_1px,transparent_1px)] bg-[size:40px_40px] opacity-20" style={{transform: "perspective(1000px) rotateX(20deg) scale(1.2)"}}></div>
+                        {/* Friendly Tag */}
+                        <div className="absolute top-[30%] left-[25%] p-3 rounded-lg border border-[#f2df0d]/20 bg-[#222110]/80 backdrop-blur w-64">
+                            <div className="flex justify-between items-start mb-2"><div className="flex gap-2 items-center"><div className="bg-[#f2df0d]/20 p-1 rounded text-[#f2df0d]"><span className="material-symbols-outlined text-sm">agriculture</span></div><div><p className="font-bold text-sm">UNIT ALPHA</p></div></div><span className="text-[10px] bg-blue-500/20 text-blue-400 px-1.5 rounded uppercase font-bold">Friendly</span></div>
+                            <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden"><div className="bg-[#f2df0d] h-full w-full"></div></div>
+                        </div>
+                        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-[#222110]/80 backdrop-blur rounded-full px-6 py-3 border border-[#f2df0d]/20 flex gap-4"><button className="bg-[#f2df0d] text-black font-bold px-4 py-2 rounded-full text-sm flex gap-2 items-center"><span className="material-symbols-outlined">radar</span>SCAN</button></div>
+                     </main>
+                     <aside className="w-80 bg-[#222110]/95 backdrop-blur border-l border-white/10 flex flex-col">
+                        <div className="p-4 border-b border-white/10 bg-[#1a190e]"><h2 className="text-xs font-bold text-white/70 uppercase">Live Feed</h2></div>
+                        <div className="p-4 space-y-4 font-mono text-sm overflow-y-auto flex-1">
+                            <div className="flex gap-3"><span className="text-[10px] text-white/30 pt-0.5">10:42:09</span><div><span className="text-[#f2df0d] font-bold text-xs uppercase bg-[#f2df0d]/10 px-1 rounded">Warning</span><p className="text-white/80">Artillery detected.</p></div></div>
+                            <div className="flex gap-3"><span className="text-[10px] text-white/30 pt-0.5">10:42:05</span><div><span className="text-red-400 font-bold text-xs uppercase bg-red-900/20 px-1 rounded">Hostile</span><p className="text-white/80">Red Sniper at G-12.</p></div></div>
+                        </div>
+                     </aside>
+                 </div>
+             </div>
+        );
+
+
+        // --- App Component ---
+
+        const App = () => {
+            return (
+                <MemoryRouter>
+                    <MainLayout>
+                        <Routes>
+                            <Route path="/" element={<SetupPhase />} />
+                            <Route path="/mid-simulation" element={<MidSimulation />} />
+                            <Route path="/battle-interface" element={<BattleInterface />} />
+                            <Route path="/combat-logic" element={<CombatLogic />} />
+                            
+                            <Route path="/unit-tank" element={<UnitTank />} />
+                            <Route path="/unit-artillery" element={<UnitArtillery />} />
+                            <Route path="/unit-fighter" element={<UnitFighter />} />
+                            <Route path="/unit-infantry" element={<UnitInfantry />} />
+                             <Route path="/unit-showcase-all" element={<UnitShowcaseAll />} />
+
+                            <Route path="/tech-grid" element={<TechGrid />} />
+                            <Route path="/design-system" element={<DesignSystem />} />
+                            <Route path="/intel-dashboard" element={<IntelDashboard />} />
+                            <Route path="/tech-view-jet" element={<TechViewJet />} />
+
+                            <Route path="/battle-results" element={<BattleResults />} />
+                            <Route path="/victory-modal" element={<VictoryModal />} />
+                            <Route path="/setup-light" element={<SetupLight />} />
+                             <Route path="/active-sim-3d" element={<ActiveSim3D />} />
+                        </Routes>
+                    </MainLayout>
+                </MemoryRouter>
+            );
+        };
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
